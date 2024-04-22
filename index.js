@@ -51,40 +51,36 @@ app.get('/api/users',async (req,res)=>{
 });
 
 //add exercise
-app.post('/api/users/:_id/exercises',async (req,res)=>{
-  try{
+app.post('/api/users/:_id/exercises', async (req, res) => {
+  try {
     const uid = req.params["_id"];
+    const { description, duration, date } = req.body;
+    
     const exercise = {
-      description: req.body.desc, 
-      duration: req.body.dur, 
-      date: new Date(req.body.date).toDateString() || new Date().toDateString
+      description: description,
+      duration: parseInt(duration),
+      date: date ? new Date(date).toISOString() : new Date().toISOString()
     };
+
     const user = await Users.findByIdAndUpdate(
       uid,
-      { $push : {log: exercise}},
-      { new : true}
+      { $push: { log: exercise } },
+      { new: true }
     );
-    res.json({
-      _id: uid,
-      username: user.username,
-      description: user.log.pop().description,
-      duration: user.log.pop().duration,
-      date: user.log.pop().date
-    });
-  }
-  catch(e){
-    console.error('Error adding exercise',e);
-    res.status(500).json({error: 'Failed to add Exercise'});
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error adding exercise:', error);
+    res.status(500).json({ error: 'Failed to add Exercise' });
   }
 });
+
 
 //fetch logs for an user
 app.get('/api/users/:_id/logs', async (req, res) => {
   try {
     const uid = req.params["_id"];
-    const from = req.query.from;
-    const to = req.query.to;
-    const limit = parseInt(req.query.limit) || 0;
+    const { from, to, limit } = req.query;
 
     let query = { _id: uid };
 
@@ -94,11 +90,9 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       if (to) query["log.date"].$lte = new Date(to);
     }
 
-    let user = await Users.findById(uid);
+    let user = await Users.findById(uid, { log: { $slice: parseInt(limit) || undefined } });
 
-    if (limit > 0 && user.log.length > limit) {
-      user.log = user.log.slice(0, limit);
-    }
+    user = user.toObject(); // Convert to plain JavaScript object to modify
 
     user.count = user.log.length;
 
@@ -108,6 +102,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch user logs' });
   }
 });
+
 
 
 
