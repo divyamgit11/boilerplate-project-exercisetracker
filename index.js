@@ -67,9 +67,9 @@ app.post('/api/users/:_id/exercises',async (req,res)=>{
     res.json({
       _id: uid,
       username: user.username,
-      description: user.log[-1].description,
-      duration: user.log[-1].duration,
-      date: user.log[-1].date
+      description: user.log.pop().description,
+      duration: user.log.pop().duration,
+      date: user.log.pop().date
     });
   }
   catch(e){
