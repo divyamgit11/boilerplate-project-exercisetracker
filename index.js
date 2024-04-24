@@ -5,7 +5,10 @@ const cors = require('cors')
 require('dotenv').config()
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const Users = require(__dirname + '/models/users');
+const Users = require('./models/users');
+const Exercises = require('./models/exercises');
+const Logs = require('./models/logs');
+const Exercise = require('./models/exercises');
 
 mongoose.connect(process.env.MONGO_URI)
 .then(()=>console.log('connected to mongodb successfully'))
@@ -41,7 +44,7 @@ app.post('/api/users',async (req,res)=>{
 //fetch all users
 app.get('/api/users',async (req,res)=>{
   try{
-  const UserList = await Users.find().select({count:0, log:0}).exec();
+  const UserList = await Users.find()
   res.json(UserList);
   }
   catch(e){
@@ -56,20 +59,17 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
     const uid = req.params["_id"];
     const { description, duration, date } = req.body;
     
-    const exercise = {
+    const exercise =  {
+      _id: uid,
       description: description,
       duration: parseInt(duration),
       date: date ? new Date(date).toDateString() : new Date().toDateString(),
-      date: date ? new Date(date).toDateString() : new Date().toDateString()
     };
 
-    const user = await Users.findByIdAndUpdate(
-      uid,
-      { $push: { log: exercise } },
-      { new: true }
-    );
+    const exerciseDoc = new Exercise(exercise);
+    await exerciseDoc.save()
 
-    res.json(user);
+    res.json(exerciseDoc);
   } catch (error) {
     console.error('Error adding exercise:', error);
     res.status(500).json({ error: 'Failed to add Exercise' });
@@ -77,25 +77,42 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
 });
 
 
-//fetch logs for an user
+//fetch logs for a user
 app.get('/api/users/:_id/logs', async (req, res) => {
   try {
     const uid = req.params["_id"];
-    const { from, to, limit } = req.query;
+    let { from, to, limit } = req.query;
 
-    let query = { _id: uid };
+    // Convert limit to a number, default to 0 if not provided
+    limit = limit ? parseInt(limit) : 0;
 
+    // Prepare query conditions
+    const conditions = { _id: uid };
     if (from || to) {
-      query["log.date"] = {};
-      if (from) query["log.date"].$gte = new Date(from);
-      if (to) query["log.date"].$lte = new Date(to);
+      conditions.date = {};
+      if (from) conditions.date.$gte = new Date(from);
+      if (to) conditions.date.$lte = new Date(to);
     }
 
-    let user = await Users.findById(uid, { log: { $slice: parseInt(limit) } }).lean();
+    // Fetch user and populate exercise logs
+    const user = await Users.findById(uid);
+    const logs = await Exercise.find(conditions)
+                              .limit(limit)
+                              .select('description duration date -_id');
 
-    user.count = user.log.length;
+    // Construct response object
+    const response = {
+      _id: user._id,
+      username: user.username,
+      count: logs.length,
+      log: logs.map(log => ({
+        description: log.description,
+        duration: log.duration,
+        date: log.date.toDateString() // Convert date to string
+      }))
+    };
 
-    res.json(user);
+    res.json(response);
   } catch (error) {
     console.error('Error fetching user logs:', error);
     res.status(500).json({ error: 'Failed to fetch user logs' });
