@@ -1,9 +1,14 @@
-// /models/users.js
-const mongoose = require('mongoose');
-const userSchema = mongoose.Schema({
-    username: {type: String, required:true}
-});
+const Mongoose = require('mongoose');
 
-const Users = mongoose.model('User',userSchema, 'users');
+const user_schema = new Mongoose.Schema({
+    username: {
+        type: String,
+        required: true
+    }
+},
+    {
+        collection: 'users'
+    }
+);
 
-module.exports = Users;
+module.exports = Mongoose.model('UserModel', user_schema);

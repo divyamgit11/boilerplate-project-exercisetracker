@@ -1,36 +1,36 @@
-const mongoose = require('mongoose');
-const User = require('./users');
-const Exercise = require('./exercises');
+const Mongoose = require('mongoose');
 
-const logSchema = mongoose.Schema({
-    _id:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref:User['_id']
+const log_schema = new Mongoose.Schema({
+    _id: {
+        type: Mongoose.Schema.Types.ObjectId,
+        required: true
     },
     username: {
-        type: User.username,
-        ref: User,
+        type: String,
         required: true
     },
     count: {
         type: Number,
-        default: 1
+        required: true
     },
     log: [{
         description: {
             type: String,
-            ref: Exercise.description
+            required: true
         },
         duration: {
             type: Number,
-            ref: Exercise.duration
+            required: true
         },
         date: {
             type: Date,
-            ref: Exercise.date
+            required: true
         }
     }]
-});
+},
+    {
+        collection: 'logs'
+    }
+);
 
-const Log = mongoose.model('Log', logSchema, 'logs');
-module.exports = Log;
+module.exports = Mongoose.model('LogModel', log_schema);
