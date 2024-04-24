@@ -59,7 +59,8 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
     const exercise = {
       description: description,
       duration: parseInt(duration),
-      date: date ? new Date(date).toISOString() : new Date().toISOString()
+      date: date ? new Date(date).toDateString() : new Date().toDateString(),
+      date: date ? new Date(date).toDateString() : new Date().toDateString()
     };
 
     const user = await Users.findByIdAndUpdate(
@@ -90,9 +91,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       if (to) query["log.date"].$lte = new Date(to);
     }
 
-    let user = await Users.findById(uid, { log: { $slice: parseInt(limit) || undefined } });
-
-    user = user.toObject(); // Convert to plain JavaScript object to modify
+    let user = await Users.findById(uid, { log: { $slice: parseInt(limit) } }).lean();
 
     user.count = user.log.length;
 
